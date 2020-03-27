@@ -1,0 +1,133 @@
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+		maven { url "https://plugins.gradle.org/m2/" }
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+		classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.1.0'
+        classpath 'com.wynprice.cursemaven:CurseMaven:1.2.+'
+    }
+}
+apply plugin: 'net.minecraftforge.gradle'
+
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+apply plugin: 'com.wynprice.cursemaven'
+apply plugin: 'com.matthewprenger.cursegradle'
+
+version = '1.1'
+group = 'com.pie.integration' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = 'hookwebjs'
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+
+minecraft {
+    mappings channel: 'snapshot', version: '20190719-1.14.3'
+    runs {
+        client {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                hookwebjs {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                hookwebjs {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            args '--mod', 'hookwebjs', '--all', '--output', file('src/generated/resources/')
+
+            mods {
+                hookwebjs {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+repositories {
+	mavenLocal()
+	maven { url "https://maven.latmod.com/" } //KJS
+}
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.15.2-31.1.0'
+
+
+    compile(fg.deobf(project.dependencies.create("dev.latvian.mods:kubejs:2.3.3.2") {
+        transitive = false
+        changing = true
+    }))
+}
+
+// Example for how to get properties into the manifest for reading by the runtime..
+jar {
+    manifest {
+        attributes([
+            "Specification-Title": "Pie's KubeJS Integration for WebHooks",
+            "Specification-Vendor": "Pie",
+            "Specification-Version": "1", // We are version 1 of ourselves
+            "Implementation-Title": project.name,
+            "Implementation-Version": "${version}",
+            "Implementation-Vendor" :"Pie",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+// Example configuration to allow publishing using the maven-publish task
+// we define a custom artifact that is sourced from the reobfJar output task
+// and then declare that to be published
+// Note you'll need to add a repository here
+def reobfFile = file("$buildDir/reobfJar/${archivesBaseName}-v${version}.jar")
+def reobfArtifact = artifacts.add('default', reobfFile) {
+    type 'jar'
+    builtBy 'reobfJar'
+}
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact reobfArtifact
+        }
+    }
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
+		
+		maven { url "https://maven.latmod.com/" }
+    }
+}
